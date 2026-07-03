@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 	"task_tracker/internal/config"
+	"task_tracker/internal/email"
 	task_handler "task_tracker/internal/handlers/task"
 	team_handler "task_tracker/internal/handlers/team"
 	user_handler "task_tracker/internal/handlers/user"
@@ -75,7 +76,8 @@ func main() {
 	router.Post("/register", userHandler.Register)
 	router.Post("/login", userHandler.Login)
 
-	teamService := team_service.New(log, storage)
+	emailService := &email.Mock{}
+	teamService := team_service.New(log, storage, emailService)
 	teamHandler := team_handler.New(log, teamService)
 
 	taskService := task_service.New(log, storage, cache)

@@ -11,8 +11,8 @@ import (
 func (s *Storage) InsertTask(ctx context.Context, task domain.TaskRequest) error {
 	const fn = "storage.task.InsertTask"
 
-	var user_id int64
-	err := s.db.QueryRowContext(ctx, `SELECT user_id FROM team_members WHERE team_id = ?`, task.Team_id).Scan(&user_id)
+	var check int64
+	err := s.db.QueryRowContext(ctx, `SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?`, task.Team_id, task.Creator).Scan(&check)
 	if errors.Is(err, sql.ErrNoRows) {
 		return errors.New("User not in a team")
 	}
