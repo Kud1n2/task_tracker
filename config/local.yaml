@@ -1,0 +1,19 @@
+env: "local" # local, dev, prod
+storage_path: "task_tracker_user:task_tracker_pass@tcp(localhost:3307)/task_tracker?parseTime=true"
+http_server:
+  address: "0.0.0.0:8080"
+  timeout: 4s
+  idle_timeout: 60s
+  database_timeout: 10s
+jwt:
+  secret: "secret_key"
+cache:
+  redis_addr: "localhost:6379"
+  min_idle_conns: 3
+  redis_pool_size: 10
+storage:
+  storage_path: "task_tracker_user:task_tracker_pass@tcp(localhost:3307)/task_tracker?parseTime=true"
+  max_open_conns: 25
+  max_idle_conns: 10
+  conn_max_lifetime: 5m
+  conn_max_idle_time: 1m
