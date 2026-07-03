@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"task_tracker/internal/domain"
+	email "task_tracker/internal/email"
 	service "task_tracker/internal/service/team"
 	"task_tracker/internal/service/team/mocks"
 	"testing"
@@ -20,6 +21,7 @@ func logger() *slog.Logger {
 func TestMakeATeamSuccess(t *testing.T) {
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		CreateTeam(
@@ -29,7 +31,7 @@ func TestMakeATeamSuccess(t *testing.T) {
 		).
 		Return(nil)
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	err := service.MakeATeam(
 		context.Background(),
@@ -45,12 +47,13 @@ func TestMakeATeamSuccess(t *testing.T) {
 func TestMakeATeamError(t *testing.T) {
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		CreateTeam(mock.Anything, "Backend", int64(1)).
 		Return(errors.New("db error"))
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	err := service.MakeATeam(
 		context.Background(),
@@ -73,12 +76,13 @@ func TestGetUsersTeamsSuccess(t *testing.T) {
 	}
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		GetTeams(mock.Anything, int64(1)).
 		Return(expected, nil)
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	teams, err := service.GetUsersTeams(context.Background(), 1)
 
@@ -89,12 +93,13 @@ func TestGetUsersTeamsSuccess(t *testing.T) {
 func TestGetUsersTeamsError(t *testing.T) {
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		GetTeams(mock.Anything, int64(1)).
 		Return(nil, errors.New("db"))
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	_, err := service.GetUsersTeams(context.Background(), 1)
 
@@ -104,6 +109,7 @@ func TestGetUsersTeamsError(t *testing.T) {
 func TestInviteUserSuccess(t *testing.T) {
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		AddUser(
@@ -114,7 +120,7 @@ func TestInviteUserSuccess(t *testing.T) {
 		).
 		Return(nil)
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	err := service.InviteUser(
 		context.Background(),
@@ -129,12 +135,13 @@ func TestInviteUserSuccess(t *testing.T) {
 func TestInviteUserError(t *testing.T) {
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		AddUser(mock.Anything, int64(10), int64(5), int64(1)).
 		Return(errors.New("db"))
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	err := service.InviteUser(
 		context.Background(),
@@ -153,12 +160,13 @@ func TestTeamInfoSuccess(t *testing.T) {
 	}
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		GetTeamsInfo(mock.Anything).
 		Return(expected, nil)
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	info, err := service.TeamInfo(context.Background())
 
@@ -169,12 +177,13 @@ func TestTeamInfoSuccess(t *testing.T) {
 func TestTeamInfoError(t *testing.T) {
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		GetTeamsInfo(mock.Anything).
 		Return(nil, errors.New("db"))
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	_, err := service.TeamInfo(context.Background())
 
@@ -188,12 +197,13 @@ func TestBestUsersSuccess(t *testing.T) {
 	}
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		TopUsers(mock.Anything).
 		Return(expected, nil)
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	users, err := service.BestUsers(context.Background())
 
@@ -204,12 +214,13 @@ func TestBestUsersSuccess(t *testing.T) {
 func TestBestUsersError(t *testing.T) {
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		TopUsers(mock.Anything).
 		Return(nil, errors.New("db"))
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	_, err := service.BestUsers(context.Background())
 
@@ -223,12 +234,13 @@ func TestExternalUserSuccess(t *testing.T) {
 	}
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		NotInTeam(mock.Anything).
 		Return(expected, nil)
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	users, err := service.ExternalUser(context.Background())
 
@@ -239,12 +251,13 @@ func TestExternalUserSuccess(t *testing.T) {
 func TestExternalUserError(t *testing.T) {
 
 	storage := mocks.NewStorage(t)
+	email := &email.Mock{}
 
 	storage.EXPECT().
 		NotInTeam(mock.Anything).
 		Return(nil, errors.New("db"))
 
-	service := service.New(logger(), storage)
+	service := service.New(logger(), storage, email)
 
 	_, err := service.ExternalUser(context.Background())
 
