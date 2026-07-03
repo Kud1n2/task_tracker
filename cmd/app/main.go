@@ -18,10 +18,12 @@ import (
 	user_service "task_tracker/internal/service/user"
 	"task_tracker/internal/storage/mysql"
 	"task_tracker/internal/storage/redis"
+	metrics "task_tracker/pkg/metrics"
 	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -56,6 +58,9 @@ func main() {
 	}
 	defer cache.Close()
 
+	rateLimiter := mw.NewRateLimiter(cfg.CacheConfig)
+	metrics.Register()
+
 	defer func() {
 		if err := storage.Close(); err != nil {
 			log.Error("failed to close storage", slog.String("error", err.Error()))
@@ -65,6 +70,7 @@ func main() {
 
 	router := chi.NewRouter()
 
+	router.Use(mw.Metrics)
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
@@ -73,9 +79,6 @@ func main() {
 	userService := user_service.New(log, storage, newJWT)
 	userHandler := user_handler.New(log, userService)
 
-	router.Post("/register", userHandler.Register)
-	router.Post("/login", userHandler.Login)
-
 	emailService := &email.Mock{}
 	teamService := team_service.New(log, storage, emailService)
 	teamHandler := team_handler.New(log, teamService)
@@ -83,22 +86,26 @@ func main() {
 	taskService := task_service.New(log, storage, cache)
 	taskHandler := task_handler.New(log, taskService)
 
+	router.Handle("/metrics", promhttp.Handler())
+	router.Post("/register", userHandler.Register)
+	router.Post("/login", userHandler.Login)
+
 	router.Group(func(router chi.Router) {
 		router.Use(mw.Auth([]byte(cfg.JWT.Secret)))
+		router.Use(rateLimiter.Middleware)
 
 		router.Post("/teams", teamHandler.MakeATeam)
 		router.Get("/teams", teamHandler.GetUsersTeams)
 		router.Post("/teams/{id}/invite", teamHandler.InviteUser)
 		router.Post("/tasks", taskHandler.CreateTask)
 		router.Put("/tasks/{id}", taskHandler.UpdateTask)
+		router.Get("/tasks/{id}/history", taskHandler.GetHistory)
+		router.Get("/tasks", taskHandler.GetFilteredTasks)
+		router.Get("/teams/info", teamHandler.TeamsInfo)
+		router.Get("/teams/top", teamHandler.BestUsers)
+		router.Get("/teams/external", teamHandler.ExternalUser)
+		router.Get("/tasks/teams", taskHandler.GetTeamTasks)
 	})
-
-	router.Get("/tasks/{id}/history", taskHandler.GetHistory)
-	router.Get("/tasks", taskHandler.GetFilteredTasks)
-	router.Get("/teams/info", teamHandler.TeamsInfo)
-	router.Get("/teams/top", teamHandler.BestUsers)
-	router.Get("/teams/external", teamHandler.ExternalUser)
-	router.Get("/tasks/teams", taskHandler.GetTeamTasks)
 
 	srv := &http.Server{
 		Addr:         cfg.Address,

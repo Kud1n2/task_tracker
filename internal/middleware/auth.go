@@ -18,7 +18,7 @@ func Auth(secret []byte) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if !strings.HasPrefix(authHeader, "Bearer ") {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				w.WriteHeader(http.StatusUnauthorized)
 				render.JSON(w, r, map[string]string{
 					"error":   "unauthorized",
 					"message": "No bearer",
@@ -31,7 +31,7 @@ func Auth(secret []byte) func(http.Handler) http.Handler {
 				return secret, nil
 			})
 			if err != nil || !token.Valid {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				w.WriteHeader(http.StatusUnauthorized)
 				render.JSON(w, r, map[string]string{
 					"error":   "unauthorized",
 					"message": "Token not valid",
@@ -41,7 +41,7 @@ func Auth(secret []byte) func(http.Handler) http.Handler {
 
 			claims, ok := token.Claims.(jwt.MapClaims)
 			if !ok {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				w.WriteHeader(http.StatusUnauthorized)
 				render.JSON(w, r, map[string]string{
 					"error":   "unauthorized",
 					"message": "No claims",
@@ -51,7 +51,7 @@ func Auth(secret []byte) func(http.Handler) http.Handler {
 
 			userID, ok := claims["user_id"].(float64)
 			if !ok {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				w.WriteHeader(http.StatusUnauthorized)
 				render.JSON(w, r, map[string]string{
 					"error":   "unauthorized",
 					"message": "No user_id",
