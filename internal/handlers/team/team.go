@@ -132,6 +132,7 @@ func (h *Handler) InviteUser(w http.ResponseWriter, r *http.Request) {
 			"error":   "Bad request",
 			"message": "Empty id",
 		})
+		return
 	}
 
 	team_id, err := strconv.ParseInt(team_idStr, 10, 64)
@@ -142,6 +143,7 @@ func (h *Handler) InviteUser(w http.ResponseWriter, r *http.Request) {
 			"error":   "Bad request",
 			"message": "Invalid id",
 		})
+		return
 	}
 
 	var user_id domain.TeamInviteRequest
@@ -153,6 +155,7 @@ func (h *Handler) InviteUser(w http.ResponseWriter, r *http.Request) {
 			"error":   "Bad request",
 			"message": "Failed to decode request body",
 		})
+		return
 	}
 
 	owner, ok := r.Context().Value(mw.UserIDKey).(int64)

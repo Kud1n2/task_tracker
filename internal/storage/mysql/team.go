@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"task_tracker/internal/domain"
@@ -16,7 +17,7 @@ func (s *Storage) CreateTeam(ctx context.Context, name string, owner int64) erro
 	}
 	defer tx.Rollback()
 
-	res, err := s.db.Exec(`INSERT INTO teams(name, created_by) VALUES (?, ?)`, name, owner)
+	res, err := tx.ExecContext(ctx, `INSERT INTO teams(name, created_by) VALUES (?, ?)`, name, owner)
 	if err != nil {
 		return fmt.Errorf("%s:%w", fn, err)
 	}
@@ -41,6 +42,7 @@ func (s *Storage) GetTeams(ctx context.Context, userID int64) ([]domain.TeamResp
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", fn, err)
 	}
+	defer rows.Close()
 
 	var teams []domain.TeamResponse
 
@@ -59,13 +61,18 @@ func (s *Storage) AddUser(ctx context.Context, team_id, userID, owner int64) err
 
 	var role string
 
-	_ = s.db.QueryRowContext(ctx, `SELECT role FROM team_members WHERE team_id = ? AND user_id = ?`, team_id, owner).Scan(&role)
-
+	err := s.db.QueryRowContext(ctx, `SELECT role FROM team_members WHERE team_id = ? AND user_id = ?`, team_id, owner).Scan(&role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("%s: %w", fn, errors.New("user is not a team member"))
+	}
+	if err != nil {
+		return fmt.Errorf("%s:%w", fn, err)
+	}
 	if role != "owner" {
 		return fmt.Errorf("%s:%w", fn, errors.New("Only owner can invite"))
 	}
 
-	_, err := s.db.ExecContext(ctx, `INSERT INTO team_members(user_id, team_id, role) VALUES(?,?,'user')`, userID, team_id)
+	_, err = s.db.ExecContext(ctx, `INSERT INTO team_members(user_id, team_id, role) VALUES(?,?,'user')`, userID, team_id)
 	if err != nil {
 		return fmt.Errorf("%s:%w", fn, err)
 	}
@@ -92,6 +99,7 @@ func (s *Storage) GetTeamsInfo(ctx context.Context) ([]domain.TeamInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", fn, err)
 	}
+	defer rows.Close()
 
 	var teams_info []domain.TeamInfo
 
@@ -126,6 +134,7 @@ func (s *Storage) TopUsers(ctx context.Context) ([]domain.TopUsers, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", fn, err)
 	}
+	defer rows.Close()
 
 	var users []domain.TopUsers
 
@@ -158,6 +167,7 @@ func (s *Storage) NotInTeam(ctx context.Context) ([]domain.NotInTeam, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", fn, err)
 	}
+	defer rows.Close()
 
 	var users []domain.NotInTeam
 

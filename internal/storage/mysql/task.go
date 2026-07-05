@@ -66,6 +66,8 @@ func (s *Storage) SelectTasks(ctx context.Context, filter domain.TaskFilter) ([]
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", fn, err)
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var task domain.TaskResponse
 
@@ -99,6 +101,7 @@ func (s *Storage) SelectHistory(ctx context.Context, task_id int64) ([]domain.Ta
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", fn, err)
 	}
+	defer rows.Close()
 
 	var history []domain.TaskHistory
 
@@ -119,6 +122,7 @@ func (s *Storage) GetTeamTasks(ctx context.Context, teamID int64) ([]domain.Task
 	if err != nil {
 		return nil, fmt.Errorf("%s:%w", fn, err)
 	}
+	defer rows.Close()
 
 	var tasks []domain.TaskResponse
 	for rows.Next() {

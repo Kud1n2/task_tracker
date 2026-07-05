@@ -49,7 +49,6 @@ func main() {
 		log.Error("failed to init storage", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-	defer storage.Close()
 
 	cache, err := redis.New(redisCtx, cfg.CacheConfig)
 	if err != nil {
@@ -86,25 +85,27 @@ func main() {
 	taskService := task_service.New(log, storage, cache)
 	taskHandler := task_handler.New(log, taskService)
 
-	router.Handle("/metrics", promhttp.Handler())
-	router.Post("/register", userHandler.Register)
-	router.Post("/login", userHandler.Login)
+	router.Route("/api/v1", func(chi.Router) {
+		router.Handle("/metrics", promhttp.Handler())
+		router.Post("/register", userHandler.Register)
+		router.Post("/login", userHandler.Login)
 
-	router.Group(func(router chi.Router) {
-		router.Use(mw.Auth([]byte(cfg.JWT.Secret)))
-		router.Use(rateLimiter.Middleware)
+		router.Group(func(router chi.Router) {
+			router.Use(mw.Auth([]byte(cfg.JWT.Secret)))
+			router.Use(rateLimiter.Middleware)
 
-		router.Post("/teams", teamHandler.MakeATeam)
-		router.Get("/teams", teamHandler.GetUsersTeams)
-		router.Post("/teams/{id}/invite", teamHandler.InviteUser)
-		router.Post("/tasks", taskHandler.CreateTask)
-		router.Put("/tasks/{id}", taskHandler.UpdateTask)
-		router.Get("/tasks/{id}/history", taskHandler.GetHistory)
-		router.Get("/tasks", taskHandler.GetFilteredTasks)
-		router.Get("/teams/info", teamHandler.TeamsInfo)
-		router.Get("/teams/top", teamHandler.BestUsers)
-		router.Get("/teams/external", teamHandler.ExternalUser)
-		router.Get("/tasks/teams", taskHandler.GetTeamTasks)
+			router.Post("/teams", teamHandler.MakeATeam)
+			router.Get("/teams", teamHandler.GetUsersTeams)
+			router.Post("/teams/{id}/invite", teamHandler.InviteUser)
+			router.Post("/tasks", taskHandler.CreateTask)
+			router.Put("/tasks/{id}", taskHandler.UpdateTask)
+			router.Get("/tasks/{id}/history", taskHandler.GetHistory)
+			router.Get("/tasks", taskHandler.GetFilteredTasks)
+			router.Get("/teams/info", teamHandler.TeamsInfo)
+			router.Get("/teams/top", teamHandler.BestUsers)
+			router.Get("/teams/external", teamHandler.ExternalUser)
+			router.Get("/tasks/teams", taskHandler.GetTeamTasks)
+		})
 	})
 
 	srv := &http.Server{
